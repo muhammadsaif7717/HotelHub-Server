@@ -28,10 +28,13 @@ async function run() {
     // await client.connect();  //comment this line before deploy in varcel
 
     //collections
-    const userCollection = client.db("templateDB").collection("users");
+    const userCollection = client.db("hotelHubDB").collection("users");
 
     //operations
- 
+    app.get('/users', async (req, res) => {
+      const users = await userCollection.find({}).toArray();
+      res.send(users);
+    })
 
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });  //comment this line before deploy in varcel
