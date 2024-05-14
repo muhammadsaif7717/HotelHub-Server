@@ -165,8 +165,22 @@ async function run() {
       const result = await bookingsCollection.findOne(query);
       res.send(result)
     })
-     //delete specific booking
-     app.delete('/bookings/:id', async (req, res) => {
+    //update a specific booking
+    app.patch('/bookings/:id', async (req, res) => {
+      const id = req.params.id;
+      const updatedBooking = req.body;
+      const filter = { _id: new ObjectId(id) };
+      const options = { upsert: true };
+      const bookDate = {
+        $set: {
+          bookedDate: updatedBooking.bookedDate,
+        }
+      }
+      const result = await bookingsCollection.updateOne(filter,bookDate , options);
+      res.send(result);
+    });
+    //delete specific booking
+    app.delete('/bookings/:id', async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await bookingsCollection.deleteOne(query);
