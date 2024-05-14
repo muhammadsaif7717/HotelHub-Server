@@ -158,6 +158,20 @@ async function run() {
     app.get('/bookings', async (req, res) => {
       res.send(await bookingsCollection.find({}).toArray())
     })
+    // get a specific booking
+    app.get('/bookings/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await bookingsCollection.findOne(query);
+      res.send(result)
+    })
+     //delete specific booking
+     app.delete('/bookings/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await bookingsCollection.deleteOne(query);
+      res.send(result);
+    });
 
 
 
