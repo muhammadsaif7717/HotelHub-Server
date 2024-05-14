@@ -10,27 +10,27 @@ const port = process.env.PORT || 5000;
 
 
 //custom midleweres
-const logger = async (req, res, next) => {
-  console.log('Called', req.host, req.originalUrl)
-  next();
-}
+// const logger = async (req, res, next) => {
+//   console.log('Called', req.host, req.originalUrl)
+//   next();
+// }
 
-const verifyToken = async (req, res, next) => {
-  const token = req.cookies?.token;
-  // console.log('Value of the token in middlewere',token)
-  if (!token) {
-    return res.status(401).send({ message: 'unauthorized access' })
-  }
-  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
-    if (err) {
-      console.log(err)
-      return res.status(401).send({ message: 'unauthorized access' })
-    }
-    // console.log('value in the token', decoded);
-    req.user = decoded;
-    next();
-  })
-}
+// const verifyToken = async (req, res, next) => {
+//   const token = req.cookies?.token;
+// console.log('Value of the token in middlewere',token)
+//   if (!token) {
+//     return res.status(401).send({ message: 'unauthorized access' })
+//   }
+//   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+//     if (err) {
+//       console.log(err)
+//       return res.status(401).send({ message: 'unauthorized access' })
+//     }
+// console.log('value in the token', decoded);
+//     req.user = decoded;
+//     next();
+//   })
+// }
 
 
 
@@ -72,23 +72,24 @@ async function run() {
     //collections
     const userCollection = client.db("hotelHubDB").collection("users");
     const roomsCollection = client.db("hotelHubDB").collection("rooms");
+    const bookingsCollection = client.db("hotelHubDB").collection("bookings");
 
     //?!operations//
 
     //AUTH related API
-    app.post('/jwt', async (req, res) => {
-      const user = req.body;
-      console.log(user);
-      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
-      res
-        .cookie('token', token, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+    // app.post('/jwt', async (req, res) => {
+    //   const user = req.body;
+    //   console.log(user);
+    //   const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
+    //   res
+    //     .cookie('token', token, {
+    //       httpOnly: true,
+    //       secure: process.env.NODE_ENV === 'production',
+    //       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
 
-        })
-        .send({ success: true })
-    })
+    //     })
+    //     .send({ success: true })
+    // })
 
 
 
@@ -122,6 +123,42 @@ async function run() {
     app.get('/rooms', async (req, res) => {
       res.send(await roomsCollection.find({}).toArray());
     });
+    // GET a specific room 
+    app.get('/rooms/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await roomsCollection.findOne(query);
+      res.send(result);
+    });
+
+    // update a specefic room after booking
+    app.patch('/rooms/:id', async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const options = { upsert: true };
+      const updatedRoom = req.body;
+
+      const room = {
+        $set: {
+          availability: updatedRoom.availability,
+          bookedDate: updatedRoom.bookedDate,
+        }
+      }
+      const result = await roomsCollection.updateOne(filter, room, options);
+      res.send(result)
+    })
+
+
+
+    // post bookings
+    app.post('/bookings', async (req, res) => {
+      res.send(await bookingsCollection.insertOne(req.body))
+    })
+    // get bookings
+    app.get('/bookings', async (req, res) => {
+      res.send(await bookingsCollection.find({}).toArray())
+    })
+
 
 
     // Send a ping to confirm a successful connection
