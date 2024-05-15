@@ -10,28 +10,27 @@ const port = process.env.PORT || 5000;
 
 
 //custom midleweres
-// const logger = async (req, res, next) => {
-//   console.log('Called', req.host, req.originalUrl)
-//   next();
-// }
+const logger = async (req, res, next) => {
+  console.log('Called', req.host, req.originalUrl)
+  next();
+}
 
-// const verifyToken = async (req, res, next) => {
-//   const token = req.cookies?.token;
-// console.log('Value of the token in middlewere',token)
-//   if (!token) {
-//     return res.status(401).send({ message: 'unauthorized access' })
-//   }
-//   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
-//     if (err) {
-//       console.log(err)
-//       return res.status(401).send({ message: 'unauthorized access' })
-//     }
-// console.log('value in the token', decoded);
-//     req.user = decoded;
-//     next();
-//   })
-// }
-
+const verifyToken = async (req, res, next) => {
+  const token = req?.cookies?.token;
+  console.log('Value of the token in middlewere', token)
+  if (!token) {
+      return res.status(401).send({ message: 'unauthorized access' })
+  }
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+      if (err) {
+          console.log(err)
+          return res.status(401).send({ message: 'unauthorized access' })
+      }
+      console.log('value in the token', decoded);
+      req.user = decoded;
+      next();
+  })
+}
 
 
 //middlewere's
@@ -77,19 +76,26 @@ async function run() {
     //?!operations//
 
     //AUTH related API
-    // app.post('/jwt', async (req, res) => {
-    //   const user = req.body;
-    //   console.log(user);
-    //   const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
-    //   res
-    //     .cookie('token', token, {
-    //       httpOnly: true,
-    //       secure: process.env.NODE_ENV === 'production',
-    //       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+    app.post('/jwt', async (req, res) => {
+      const user = req.body;
+      console.log(user);
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
+      res
+        .cookie('token', token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
 
-    //     })
-    //     .send({ success: true })
-    // })
+        })
+        .send({ success: true })
+    })
+
+     //user logout 
+     app.post('/logout', async (req, res) => {
+      const user = req.body;
+      console.log('logging out', user)
+      res.clearCookie('token', {...cookeOption ,maxAge: 0 }).send({ success: true })
+  })
 
 
 
@@ -155,8 +161,17 @@ async function run() {
       res.send(await bookingsCollection.insertOne(req.body))
     })
     // get bookings
-    app.get('/bookings', async (req, res) => {
-      res.send(await bookingsCollection.find({}).toArray())
+    app.get('/bookings',logger,verifyToken, async (req, res) => {
+      console.log("Token owner info", req.user)
+      if (req.user.email !== req.query.email) {
+        return res.status(401).send({ message: 'Forbidden Access' });
+      }
+      let query = {}
+      if (req.query?.email) {
+        query={email: req.query?.email}
+      }
+      const result = await bookingsCollection.find(query).toArray();
+      res.send(result)
     })
     // get a specific booking
     app.get('/bookings/:id', async (req, res) => {
