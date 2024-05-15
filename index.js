@@ -176,7 +176,7 @@ async function run() {
           bookedDate: updatedBooking.bookedDate,
         }
       }
-      const result = await bookingsCollection.updateOne(filter,bookDate , options);
+      const result = await bookingsCollection.updateOne(filter, bookDate, options);
       res.send(result);
     });
     //delete specific booking
@@ -185,6 +185,25 @@ async function run() {
       const query = { _id: new ObjectId(id) };
       const result = await bookingsCollection.deleteOne(query);
       res.send(result);
+    });
+
+    // update a specific rooms review
+    app.put('/rooms/:id/reviews', async (req, res) => {
+      const id = req.params.id;
+      const review = req.body;
+
+      const filter = { _id: new ObjectId(id) };
+      const update = {
+        $push: { reviews: review } // Append the new review to the reviews array
+      };
+
+      try {
+        const result = await roomsCollection.updateOne(filter, update);
+        res.send(result);
+      } catch (error) {
+        console.error('Error:', error);
+        res.status(500).send({ error: 'Failed to update reviews' });
+      }
     });
 
 
