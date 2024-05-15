@@ -19,16 +19,16 @@ const verifyToken = async (req, res, next) => {
   const token = req?.cookies?.token;
   console.log('Value of the token in middlewere', token)
   if (!token) {
-      return res.status(401).send({ message: 'unauthorized access' })
+    return res.status(401).send({ message: 'unauthorized access' })
   }
   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
-      if (err) {
-          console.log(err)
-          return res.status(401).send({ message: 'unauthorized access' })
-      }
-      console.log('value in the token', decoded);
-      req.user = decoded;
-      next();
+    if (err) {
+      console.log(err)
+      return res.status(401).send({ message: 'unauthorized access' })
+    }
+    console.log('value in the token', decoded);
+    req.user = decoded;
+    next();
   })
 }
 
@@ -63,6 +63,12 @@ const client = new MongoClient(uri, {
   },
 });
 
+const cookeOption = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production' ? true : false,
+  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+}
+
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
@@ -81,49 +87,17 @@ async function run() {
       console.log(user);
       const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
       res
-        .cookie('token', token, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
-
-        })
+        .cookie('token', token, cookeOption)
         .send({ success: true })
     })
 
-     //user logout 
-     app.post('/logout', async (req, res) => {
+    //user logout 
+    app.post('/logout', async (req, res) => {
       const user = req.body;
       console.log('logging out', user)
-      res.clearCookie('token', {...cookeOption ,maxAge: 0 }).send({ success: true })
-  })
+      res.clearCookie('token', { ...cookeOption, maxAge: 0 }).send({ success: true })
+    })
 
-
-
-
-    // POST users
-    app.post("/users", async (req, res) => {
-      const newUser = req.body;
-      const { email } = newUser;
-      // Check if user already exists
-      const existingUser = await userCollection.findOne({ email });
-      if (existingUser) {
-        return res.send(console.log('User already exists'));
-      }
-      else {
-        res.send(await userCollection.insertOne(newUser));
-      }
-    });
-
-
-    // GET users by email
-    app.get("/users/:email", async (req, res) => {
-      res.send(await userCollection.find(req.params.email).toArray());
-    });
-
-    // GET all users
-    app.get('/users', async (req, res) => {
-      res.send(await userCollection.find({}).toArray());
-    });
 
     // GET all rooms
     app.get('/rooms', async (req, res) => {
@@ -161,14 +135,14 @@ async function run() {
       res.send(await bookingsCollection.insertOne(req.body))
     })
     // get bookings
-    app.get('/bookings',logger,verifyToken, async (req, res) => {
+    app.get('/bookings', logger, verifyToken, async (req, res) => {
       console.log("Token owner info", req.user)
       if (req.user.email !== req.query.email) {
         return res.status(401).send({ message: 'Forbidden Access' });
       }
       let query = {}
       if (req.query?.email) {
-        query={email: req.query?.email}
+        query = { email: req.query?.email }
       }
       const result = await bookingsCollection.find(query).toArray();
       res.send(result)
@@ -201,6 +175,8 @@ async function run() {
       const result = await bookingsCollection.deleteOne(query);
       res.send(result);
     });
+
+
 
     // update a specific rooms review
     app.put('/rooms/:id/reviews', async (req, res) => {
