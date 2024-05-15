@@ -35,7 +35,7 @@ const verifyToken = async (req, res, next) => {
 
 //middlewere's
 app.use(cors({
-  origin: ['http://localhost:5173'],
+  origin: ['https://hotelhub-7717.web.app', 'http://localhost:5173'],
   credentials: true
 }));
 app.use(express.json());
