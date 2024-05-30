@@ -91,6 +91,24 @@ async function run() {
         .send({ success: true })
     })
 
+
+    // post new user to database
+    app.post('/users', async (req, res) => {
+      const newUser = req.body;
+      const query = { email: newUser.email };
+      const existingUser = await userCollection.findOne(query);
+      if (!existingUser) {
+        res.send(await userCollection.insertOne(newUser))
+      }
+      else {
+        return res.send({ message: 'User Already Exists', insertedId: null })
+      }
+    })
+    // get users
+    app.get('/users', async (req, res) => {
+      res.send(await userCollection.find({}).toArray());
+    })
+
     //user logout 
     app.post('/logout', async (req, res) => {
       const user = req.body;
